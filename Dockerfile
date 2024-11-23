@@ -1,12 +1,23 @@
-FROM ubuntu:16.04
-RUN apt-get update
-RUN apt-get install -y mongodb-server ruby-full ruby-dev build-essential git
-RUN gem install bundler
-RUN git clone https://github.com/Artemmkin/reddit.git
-COPY mongod.conf /etc/mongod.conf
-COPY db_config /reddit/db_config
-COPY start.sh /start.sh
-RUN cd /reddit && bundle install
-RUN mkdir -p /data/db
-RUN chmod 0777 /start.sh
-CMD ["/start.sh"]
+FROM nginx:latest
+
+RUN apt-get update && \
+    apt-get install -y git && \
+    rm -f /etc/nginx/sites-enabled/default
+
+ENV REPO_URL="https://github.com/AndrVlad/study.git"
+ENV PROJECT_DIR="/var/www/rent_car"
+
+RUN mkdir -p $PROJECT_DIR && \
+    git clone $REPO_URL $PROJECT_DIR && \
+    cd $PROJECT_DIR/rent_car && \
+    chown -R www-data:www-data $PROJECT_DIR
+
+COPY nginx.conf /etc/nginx/conf.d/rent_car.conf
+COPY nginx.conf /etc/nginx/sites-available/rent_car.conf
+WORKDIR /var/www/rent_car/rent_car
+
+# Копируем статические файлы в Nginx и задаем правильные права
+RUN chown -R www-data:www-data /var/www/rent_car 
+EXPOSE 80 81
+
+CMD ["nginx", "-g", "daemon off;"]
